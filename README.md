@@ -6,18 +6,30 @@ Stencil renders templated text with variables. It supports:
 - Colon templates: `:name` -> `Bob` renders the string "Hi, :name!" as "Hi, Bob!"
 
 ```
-❯ ./stencil -template examples/template.gotemplate -variables name=Bob,age=35 -type gotemplate
+❯ ./stencil --help
+Stencil command: Convert templated text using variables
+
+Usage: ./stencil [OPTIONS]
+  -f, --file string        path to the template file
+  -t, --type string        type of template to use (default "mustache")
+  -v, --variables string   comma-separated list of key=value pairs
+pflag: help requested
+
+❯ ./stencil -f examples/template.mustache --variables name=Bob,age=35
 Name: |Bob|
 Age: |35|
 
-
-❯ ./stencil -template examples/template.mustache -variables name=Bob,age=35 -type mustache
+❯ ./stencil -f examples/template.mustache --variables name=Bob,age=35 --type mustache
 Name: |Bob|
 Age: |35|
 
-
-❯ ./stencil -template examples/template.colon -variables name=Bob,age=35 -type colon
+❯ ./stencil -f examples/template.gotemplate --variables name=Bob,age=35 --type go
 Name: |Bob|
 Age: |35|
+
+❯ ./stencil -f examples/template.colon --variables name=Bob,age=35 --type colon
+Name: |Bob|
+Age: |35|
+
 
 ```
