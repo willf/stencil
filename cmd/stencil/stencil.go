@@ -12,6 +12,14 @@ import (
 	flag "github.com/spf13/pflag"
 )
 
+type TemplateType int
+
+const (
+	GoTemplate TemplateType = iota
+	MustacheTemplate
+	ColonTemplate
+)
+
 func readInput(filename string) (string, error) {
 	if filename != "" {
 		// Read from file
@@ -63,7 +71,11 @@ func fileColonTemplate(input string, variables map[string]interface{}) (string, 
 func Execute() {
 	var templateFile = flag.StringP("file", "f", "", "path to the template file")
 	var variables = flag.StringP("variables", "v", "", "comma-separated list of key=value pairs")
-	var templateType = flag.StringP("type", "t", "mustache", "type of template to use")
+	// var templateType = flag.StringP("type", "t", "mustache", "type of template to use")
+	var useGoTemplate = flag.BoolP("gotemplate", "g", false, "use Go template syntax")
+	var useMustacheTemplate = flag.BoolP("mustache", "m", false, "use Mustache template syntax (default)")
+	var useColonTemplate = flag.BoolP("colon", "c", false, "use colon template syntax")
+	var helpme = flag.BoolP("help", "h", false, "print this help message")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stdout, "Stencil command: Convert templated text using variables\n\n")
@@ -73,10 +85,26 @@ func Execute() {
 
 	flag.Parse()
 
-	Render(*templateFile, *variables, *templateType)
+	if *helpme {
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	var templateType TemplateType
+	if *useGoTemplate {
+		templateType = GoTemplate
+	} else if *useMustacheTemplate {
+		templateType = MustacheTemplate
+	} else if *useColonTemplate {
+		templateType = ColonTemplate
+	} else {
+		templateType = MustacheTemplate
+	}
+
+	Render(*templateFile, *variables, templateType)
 }
 
-func Render(templateFile string, variables string, templateType string) {
+func Render(templateFile string, variables string, templateType TemplateType) {
 	// Parse the variables into a map
 	variablesMap := make(map[string]interface{})
 	if variables != "" {
@@ -102,11 +130,11 @@ func Render(templateFile string, variables string, templateType string) {
 	var result string
 
 	switch {
-	case templateType == "gotemplate" || templateType == "go":
+	case templateType == GoTemplate:
 		result, err = fillGoTemplate(input, variablesMap)
-	case templateType == "mustache" || templateType == "moustache":
+	case templateType == MustacheTemplate:
 		result, err = fileMoustacheTemplate(input, variablesMap)
-	case templateType == "colon":
+	case templateType == ColonTemplate:
 		result, err = fileColonTemplate(input, variablesMap)
 	default:
 		fmt.Println("Invalid template type")
