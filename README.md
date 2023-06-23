@@ -31,5 +31,13 @@ Age: |35|
 Name: |Bob|
 Age: |35|
 
+```
+
+## Install
+
+```
+gh repo clone willf/stencil
+cd stencil
+go install ./cmd/stencil
 
 ```
