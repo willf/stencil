@@ -9,7 +9,6 @@ import (
 	"text/template"
 
 	"github.com/cbroglie/mustache"
-	flag "github.com/spf13/pflag"
 )
 
 type TemplateType int
@@ -38,7 +37,7 @@ func readInput(filename string) (string, error) {
 	}
 }
 
-func fillGoTemplate(input string, variables map[string]interface{}) (string, error) {
+func fillGoTemplate(input string, variables map[string]string) (string, error) {
 	// Create a new template
 	tmpl, err := template.New("template").Parse(input)
 	if err != nil {
@@ -55,11 +54,11 @@ func fillGoTemplate(input string, variables map[string]interface{}) (string, err
 	return buf.String(), nil
 }
 
-func fileMoustacheTemplate(input string, variables map[string]interface{}) (string, error) {
+func fileMoustacheTemplate(input string, variables map[string]string) (string, error) {
 	return mustache.Render(input, variables)
 }
 
-func fileColonTemplate(input string, variables map[string]interface{}) (string, error) {
+func fileColonTemplate(input string, variables map[string]string) (string, error) {
 	// Replace variable references with their values
 	output := input
 	for key, value := range variables {
@@ -68,54 +67,85 @@ func fileColonTemplate(input string, variables map[string]interface{}) (string, 
 	return output, nil
 }
 
-func Execute() {
-	var templateFile = flag.StringP("file", "f", "", "path to the template file")
-	var variables = flag.StringP("variables", "v", "", "comma-separated list of key=value pairs")
-	// var templateType = flag.StringP("type", "t", "mustache", "type of template to use")
-	var useGoTemplate = flag.BoolP("gotemplate", "g", false, "use Go template syntax")
-	var useMustacheTemplate = flag.BoolP("mustache", "m", false, "use Mustache template syntax (default)")
-	var useColonTemplate = flag.BoolP("colon", "c", false, "use colon template syntax")
-	var helpme = flag.BoolP("help", "h", false, "print this help message")
+func Usage() {
+	fmt.Println("Usage: stencil [OPTIONS]")
+	fmt.Println("Stencil command: Convert templated text using variables")
+	fmt.Println("")
+	fmt.Println("Options:")
+	fmt.Println("  -f --file <file>   path to a template file (default: stdin)")
+	fmt.Println("  -g --go            use Go template syntax")
+	fmt.Println("  -m --mustache      use Mustache template syntax (default)")
+	fmt.Println("  -c --colon         use colon template syntax")
+	fmt.Println("  -h --help          print this help message")
+	fmt.Println("Other flags are passed as key=value pairs for use in the template")
+}
 
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stdout, "Stencil command: Convert templated text using variables\n\n")
-		fmt.Fprintf(os.Stdout, "Usage: %s [OPTIONS]\n", os.Args[0])
-		flag.PrintDefaults()
+func Execute() {
+	var templateFile string
+	var variables map[string]string = make(map[string]string)
+	var useGoTemplate bool
+	var useMustacheTemplate bool
+	var useColonTemplate bool
+	var helpme bool
+
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		switch arg {
+		case "-f", "--file":
+			i++
+			if i >= len(os.Args) {
+				fmt.Println("Missing template file")
+				os.Exit(1)
+			}
+			templateFile = os.Args[i]
+		case "-g", "--go", "--gotemplate":
+			useGoTemplate = true
+		case "-m", "--mustache":
+			useMustacheTemplate = true
+		case "-c", "--colon":
+			useColonTemplate = true
+		case "-h", "--help":
+			helpme = true
+		default:
+			// Handle key-value pairs
+			if strings.Contains(arg, "=") {
+				parts := strings.SplitN(arg, "=", 2)
+				key := strings.TrimLeft(parts[0], "-")
+				value := parts[1]
+				variables[key] = value
+			} else {
+				key := strings.TrimLeft(arg, "-")
+				i++
+				if i >= len(os.Args) {
+					fmt.Println("Missing value for key", key)
+					os.Exit(1)
+				}
+				value := os.Args[i]
+				variables[key] = value
+			}
+		}
 	}
 
-	flag.Parse()
-
-	if *helpme {
-		flag.Usage()
+	if helpme {
+		Usage()
 		os.Exit(0)
 	}
 
 	var templateType TemplateType
-	if *useGoTemplate {
+	if useGoTemplate {
 		templateType = GoTemplate
-	} else if *useMustacheTemplate {
+	} else if useMustacheTemplate {
 		templateType = MustacheTemplate
-	} else if *useColonTemplate {
+	} else if useColonTemplate {
 		templateType = ColonTemplate
 	} else {
 		templateType = MustacheTemplate
 	}
 
-	Render(*templateFile, *variables, templateType)
+	Render(templateFile, variables, templateType)
 }
 
-func Render(templateFile string, variables string, templateType TemplateType) {
-	// Parse the variables into a map
-	variablesMap := make(map[string]interface{})
-	if variables != "" {
-		pairs := strings.Split(variables, ",")
-		for _, pair := range pairs {
-			kv := strings.Split(pair, "=")
-			if len(kv) == 2 {
-				variablesMap[strings.TrimSpace(kv[0])] = kv[1]
-			}
-		}
-	}
+func Render(templateFile string, variables map[string]string, templateType TemplateType) {
 
 	var input string
 	var err error
@@ -131,11 +161,11 @@ func Render(templateFile string, variables string, templateType TemplateType) {
 
 	switch {
 	case templateType == GoTemplate:
-		result, err = fillGoTemplate(input, variablesMap)
+		result, err = fillGoTemplate(input, variables)
 	case templateType == MustacheTemplate:
-		result, err = fileMoustacheTemplate(input, variablesMap)
+		result, err = fileMoustacheTemplate(input, variables)
 	case templateType == ColonTemplate:
-		result, err = fileColonTemplate(input, variablesMap)
+		result, err = fileColonTemplate(input, variables)
 	default:
 		fmt.Println("Invalid template type")
 		os.Exit(1)

@@ -7,27 +7,36 @@ Stencil renders templated text with variables. It supports:
 
 ```
 ❯ ./stencil --help
+Usage: stencil [OPTIONS]
 Stencil command: Convert templated text using variables
 
-Usage: ./stencil [OPTIONS]
-  -f, --file string        path to the template file
-  -t, --type string        type of template to use (default "mustache")
-  -v, --variables string   comma-separated list of key=value pairs
-pflag: help requested
+Options:
+  -f --file <file>   path to a template file (default: stdin)
+  -g --go            use Go template syntax
+  -m --mustache      use Mustache template syntax (default)
+  -c --colon         use colon template syntax
+  -h --help          print this help message
+Other flags are passed as key=value pairs for use in the template
 
-❯ ./stencil -f examples/template.mustache --variables name=Bob,age=35
+Stencil tries to be forgiving about whether keys get dashes or values have a =
+
+❯ stencil -f examples/template.mustache name=Bob age=35
 Name: |Bob|
 Age: |35|
 
-❯ ./stencil -f examples/template.mustache --variables name=Bob,age=35 --type mustache
+> stencil -f examples/template.mustache name="Bob Smith" age=35 --mustache
+Name: |Bob Smith|
+Age: |35|
+
+❯ stencil -f examples/template.mustache name=Bob age=35 --mustache
 Name: |Bob|
 Age: |35|
 
-❯ ./stencil -f examples/template.gotemplate --variables name=Bob,age=35 --type go
+❯ stencil -f examples/template.gotemplate name=Bob age=35 -g
 Name: |Bob|
 Age: |35|
 
-❯ ./stencil -f examples/template.colon --variables name=Bob,age=35 --type colon
+❯ ./stencil -f examples/template.colon name=Bob age=35 --colon
 Name: |Bob|
 Age: |35|
 
